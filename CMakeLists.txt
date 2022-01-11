@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.22)
 set(CMAKE_CXX_STANDARD 17)
 
+set(APPLICATION_NAME hello)
+
 set(VULKAN_INCLUDE_PATH C:/VulkanSDK/1.2.198.1/Include)
 set(VULKAN_LIB_PATH C:/VulkanSDK/1.2.198.1/Lib)
 set(APPLICATION_NAME hello)
@@ -26,9 +28,9 @@ set_target_properties(
 
 
 
-target_include_directories(${APPLICATION_NAME} PRIVATE ${VULKAN_INCLUDE_PATH} ${GLFW_INCLUDE_PATH} ${GLM_INCLUDE_PATH} ${STB_INCLUDE_PATH} ${TINYOBJ_INCLUDE_PATH})
+target_include_directories(${APPLICATION_NAME} PRIVATE VulkanHelper ${VULKAN_INCLUDE_PATH} ${GLFW_INCLUDE_PATH} ${GLM_INCLUDE_PATH} ${STB_INCLUDE_PATH} ${TINYOBJ_INCLUDE_PATH})
 target_link_directories(${APPLICATION_NAME} PRIVATE ${VULKAN_LIB_PATH} ${GLFW_LIB_PATH})
-target_link_libraries(${APPLICATION_NAME} vulkan-1.lib glfw3.lib)
+target_link_libraries(${APPLICATION_NAME} vulkanhelper)
 
 
 add_custom_command(TARGET ${APPLICATION_NAME} POST_BUILD
