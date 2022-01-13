@@ -135,65 +135,66 @@ struct UniformBufferObject {
 class VulkanHelper {
 public:
     void run();
+    void loadModel(std::string modelPath);
 
 private:
-    GLFWwindow* window;
+    GLFWwindow* m_window;
 
-    VkInstance instance;
-    VkDebugUtilsMessengerEXT debugMessenger;
-    VkSurfaceKHR surface;
+    VkInstance m_vulkanInstance;
+    VkDebugUtilsMessengerEXT m_debugMessenger;
+    VkSurfaceKHR m_surface;
 
-    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-    VkDevice device;
+    VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
+    VkDevice m_device;
 
-    VkQueue graphicsQueue;
-    VkQueue presentQueue;
+    VkQueue m_graphicsQueue;
+    VkQueue m_presentQueue;
 
-    VkSwapchainKHR swapChain;
-    std::vector<VkImage> swapChainImages;
-    VkFormat swapChainImageFormat;
-    VkExtent2D swapChainExtent;
-    std::vector<VkImageView> swapChainImageViews;
-    std::vector<VkFramebuffer> swapChainFramebuffers;
+    VkSwapchainKHR m_swapChain;
+    std::vector<VkImage> m_swapChainImages;
+    VkFormat m_swapChainImageFormat;
+    VkExtent2D m_swapChainExtent;
+    std::vector<VkImageView> m_swapChainImageViews;
+    std::vector<VkFramebuffer> m_swapChainFramebuffers;
 
-    VkRenderPass renderPass;
-    VkDescriptorSetLayout descriptorSetLayout;
-    VkPipelineLayout pipelineLayout;
-    VkPipeline graphicsPipeline;
+    VkRenderPass m_renderPass;
+    VkDescriptorSetLayout m_descriptorSetLayout;
+    VkPipelineLayout m_pipelineLayout;
+    VkPipeline m_graphicsPipeline;
 
-    VkCommandPool commandPool;
+    VkCommandPool m_commandPool;
 
-    VkImage depthImage;
-    VkDeviceMemory depthImageMemory;
-    VkImageView depthImageView;
+    VkImage m_depthImage;
+    VkDeviceMemory m_depthImageMemory;
+    VkImageView m_depthImageView;
 
-    VkImage textureImage;
-    VkDeviceMemory textureImageMemory;
-    VkImageView textureImageView;
-    VkSampler textureSampler;
+    VkImage m_textureImage;
+    VkDeviceMemory m_textureImageMemory;
+    VkImageView m_textureImageView;
+    VkSampler m_textureSampler;
 
-    std::vector<Vertex> vertices;
-    std::vector<uint32_t> indices;
-    VkBuffer vertexBuffer;
-    VkDeviceMemory vertexBufferMemory;
-    VkBuffer indexBuffer;
-    VkDeviceMemory indexBufferMemory;
+    std::vector<Vertex> m_vertices;
+    std::vector<uint32_t> m_indices;
+    VkBuffer m_vertexBuffer;
+    VkDeviceMemory m_vertexBufferMemory;
+    VkBuffer m_indexBuffer;
+    VkDeviceMemory m_indexBufferMemory;
 
-    std::vector<VkBuffer> uniformBuffers;
-    std::vector<VkDeviceMemory> uniformBuffersMemory;
+    std::vector<VkBuffer> m_uniformBuffers;
+    std::vector<VkDeviceMemory> m_uniformBuffersMemory;
 
-    VkDescriptorPool descriptorPool;
-    std::vector<VkDescriptorSet> descriptorSets;
+    VkDescriptorPool m_descriptorPool;
+    std::vector<VkDescriptorSet> m_descriptorSets;
 
-    std::vector<VkCommandBuffer> commandBuffers;
+    std::vector<VkCommandBuffer> m_commandBuffers;
 
-    std::vector<VkSemaphore> imageAvailableSemaphores;
-    std::vector<VkSemaphore> renderFinishedSemaphores;
-    std::vector<VkFence> inFlightFences;
-    std::vector<VkFence> imagesInFlight;
-    size_t currentFrame = 0;
+    std::vector<VkSemaphore> m_imageAvailableSemaphores;
+    std::vector<VkSemaphore> m_renderFinishedSemaphores;
+    std::vector<VkFence> m_inFlightFences;
+    std::vector<VkFence> m_imagesInFlight;
+    size_t m_currentFrame = 0;
 
-    bool framebufferResized = false;
+    bool m_framebufferResized = false;
 
     void initWindow();
 
@@ -257,7 +258,6 @@ private:
 
     void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
 
-    void loadModel();
 
     void createVertexBuffer();
 
