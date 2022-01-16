@@ -29,13 +29,6 @@
 #include <unordered_map>
 #include <filesystem>
 
-const uint32_t WIDTH = 800;
-const uint32_t HEIGHT = 600;
-
-const std::string MODEL_PATH = "models/viking_room.obj";
-const std::string TEXTURE_PATH = "textures/viking_room.png";
-
-const int MAX_FRAMES_IN_FLIGHT = 2;
 
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
@@ -138,6 +131,14 @@ public:
     void loadModel(std::string modelPath);
 
 private:
+    const uint32_t WIDTH = 800;
+    const uint32_t HEIGHT = 600;
+    const int m_maxVertices = 10000;
+
+     const std::string TEXTURE_PATH = "textures/texture.jpg";
+
+    const int MAX_FRAMES_IN_FLIGHT = 2;
+
     GLFWwindow* m_window;
 
     VkInstance m_vulkanInstance;
@@ -244,11 +245,7 @@ private:
 
     bool hasStencilComponent(VkFormat format);
 
-    void createTextureImage();
-
-    void createTextureImageView();
-
-    void createTextureSampler();
+    void createTextureImage(std::string texturePath);
 
     VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
 
@@ -259,9 +256,7 @@ private:
     void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
 
 
-    void createVertexBuffer();
-
-    void createIndexBuffer();
+    void createVertexAndIndexBuffer();
 
     void createUniformBuffers();
 

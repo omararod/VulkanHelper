@@ -59,11 +59,9 @@ void VulkanHelper::run() {
         createCommandPool();
         createDepthResources();
         createFramebuffers();
-        createTextureImage();
-        createTextureImageView();
-        createTextureSampler();
-        createVertexBuffer();
-        createIndexBuffer();
+        createVertexAndIndexBuffer();
+        createTextureImage("textures/texture.jpg");
+
         createUniformBuffers();
         createDescriptorPool();
         createDescriptorSets();
@@ -221,7 +219,7 @@ void VulkanHelper::run() {
     void VulkanHelper::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo) {
         createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-        createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+        createInfo.messageSeverity = /*VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | */VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
         createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
         createInfo.pfnUserCallback = debugCallback;
     }
@@ -654,9 +652,9 @@ void VulkanHelper::run() {
         return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
     }
 
-    void VulkanHelper::createTextureImage() {
+    void VulkanHelper::createTextureImage(std::string texturePath) {
         int texWidth, texHeight, texChannels;
-        stbi_uc* pixels = stbi_load(TEXTURE_PATH.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+        stbi_uc* pixels = stbi_load(texturePath.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
         VkDeviceSize imageSize = texWidth * texHeight * 4;
 
         if (!pixels) {
@@ -682,13 +680,11 @@ void VulkanHelper::run() {
 
         vkDestroyBuffer(m_device, stagingBuffer, nullptr);
         vkFreeMemory(m_device, stagingBufferMemory, nullptr);
-    }
 
-    void VulkanHelper::createTextureImageView() {
+        //=======Create texture image view
         m_textureImageView = createImageView(m_textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
-    }
 
-    void VulkanHelper::createTextureSampler() {
+        //=======Create texture sampler
         VkPhysicalDeviceProperties properties{};
         vkGetPhysicalDeviceProperties(m_physicalDevice, &properties);
 
@@ -711,6 +707,8 @@ void VulkanHelper::run() {
             throw std::runtime_error("failed to create texture sampler!");
         }
     }
+
+   
 
     VkImageView VulkanHelper::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) {
         VkImageViewCreateInfo viewInfo{};
@@ -883,7 +881,7 @@ void VulkanHelper::run() {
             }
         }
         //Copy vertices to vertex buffer
-        VkDeviceSize vertexBufferSize = sizeof(m_vertices[0]) * m_vertices.size();
+        VkDeviceSize vertexBufferSize = sizeof(Vertex) * m_vertices.size();
         VkBuffer stagingVertexBuffer;
         VkDeviceMemory stagingVertexBufferMemory;
         createBuffer(vertexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingVertexBuffer, stagingVertexBufferMemory);
@@ -891,20 +889,18 @@ void VulkanHelper::run() {
         vkMapMemory(m_device, stagingVertexBufferMemory, 0, vertexBufferSize, 0, &data);
         memcpy(data, m_vertices.data(), (size_t)vertexBufferSize);
         vkUnmapMemory(m_device, stagingVertexBufferMemory);
-        //createBuffer(vertexBufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_vertexBuffer, m_vertexBufferMemory);
         copyBuffer(stagingVertexBuffer, m_vertexBuffer, vertexBufferSize);
         vkDestroyBuffer(m_device, stagingVertexBuffer, nullptr);
         vkFreeMemory(m_device, stagingVertexBufferMemory, nullptr);
 
         //Copy indices to index buffer
-        VkDeviceSize bufferSize = sizeof(m_indices[0])* m_indices.size();
+        VkDeviceSize bufferSize = sizeof(uint32_t) * m_indices.size();
         VkBuffer stagingBuffer;
         VkDeviceMemory stagingBufferMemory;
         createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
         vkMapMemory(m_device, stagingBufferMemory, 0, bufferSize, 0, &data);
         memcpy(data, m_indices.data(), (size_t)bufferSize);
         vkUnmapMemory(m_device, stagingBufferMemory);
-        //createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_indexBuffer, m_indexBufferMemory);
         copyBuffer(stagingBuffer, m_indexBuffer, bufferSize);
         vkDestroyBuffer(m_device, stagingBuffer, nullptr);
         vkFreeMemory(m_device, stagingBufferMemory, nullptr);
@@ -912,14 +908,11 @@ void VulkanHelper::run() {
         createCommandBuffers();//TODO: is it ok to put this here?
     }
 
-    void VulkanHelper::createVertexBuffer() {
-        VkDeviceSize bufferSize = 207900;//TODO: decide the size of the buffer;
+    void VulkanHelper::createVertexAndIndexBuffer() {
+        VkDeviceSize bufferSize = m_maxVertices * sizeof(Vertex);
+        VkDeviceSize indexBufferSize = bufferSize * 5;
         createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_vertexBuffer, m_vertexBufferMemory);
-    }
-
-    void VulkanHelper::createIndexBuffer() {
-        VkDeviceSize bufferSize = 207900;// sizeof(m_indices[0])* m_indices.size();
-        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_indexBuffer, m_indexBufferMemory);
+        createBuffer(indexBufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_indexBuffer, m_indexBufferMemory);
     }
 
     void VulkanHelper::createUniformBuffers() {

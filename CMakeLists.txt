@@ -40,5 +40,5 @@ add_custom_command(TARGET ${APPLICATION_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory "${PROJECT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/models/"
     COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/models/viking_room.obj" "${PROJECT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/models/"
     COMMAND ${CMAKE_COMMAND} -E make_directory "${PROJECT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/textures/"
-    COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/textures/viking_room.png" "${PROJECT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/textures/"
+    COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/textures/texture.jpg" "${PROJECT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/textures/"
         )
