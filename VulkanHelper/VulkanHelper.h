@@ -133,7 +133,7 @@ public:
 private:
     const uint32_t WIDTH = 800;
     const uint32_t HEIGHT = 600;
-    const int m_maxVertices = 10000;
+    const int m_maxVertices = 10000*3;
 
      const std::string TEXTURE_PATH = "textures/texture.jpg";
 
@@ -175,11 +175,9 @@ private:
     VkSampler m_textureSampler;
 
     std::vector<Vertex> m_vertices;
-    std::vector<uint32_t> m_indices;
+    
     VkBuffer m_vertexBuffer;
     VkDeviceMemory m_vertexBufferMemory;
-    VkBuffer m_indexBuffer;
-    VkDeviceMemory m_indexBufferMemory;
 
     std::vector<VkBuffer> m_uniformBuffers;
     std::vector<VkDeviceMemory> m_uniformBuffersMemory;
@@ -256,7 +254,7 @@ private:
     void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
 
 
-    void createVertexAndIndexBuffer();
+    void createVertexBuffer();
 
     void createUniformBuffers();
 

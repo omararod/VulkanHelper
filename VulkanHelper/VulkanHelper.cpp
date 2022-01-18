@@ -59,18 +59,15 @@ void VulkanHelper::run() {
         createCommandPool();
         createDepthResources();
         createFramebuffers();
-        createVertexAndIndexBuffer();
+        createVertexBuffer();
         createTextureImage("textures/texture.jpg");
-
+        loadModel("models/viking_room.obj");
         createUniformBuffers();
         createDescriptorPool();
         createDescriptorSets();
         createCommandBuffers();
-        createSyncObjects();
-
-        loadModel("models/viking_room.obj");
-
-        
+        createSyncObjects();        
+        createCommandBuffers();
     }
 
     void VulkanHelper::mainLoop() {
@@ -121,9 +118,6 @@ void VulkanHelper::run() {
         vkFreeMemory(m_device, m_textureImageMemory, nullptr);
 
         vkDestroyDescriptorSetLayout(m_device, m_descriptorSetLayout, nullptr);
-
-        vkDestroyBuffer(m_device, m_indexBuffer, nullptr);
-        vkFreeMemory(m_device, m_indexBufferMemory, nullptr);
 
         vkDestroyBuffer(m_device, m_vertexBuffer, nullptr);
         vkFreeMemory(m_device, m_vertexBufferMemory, nullptr);
@@ -847,8 +841,6 @@ void VulkanHelper::run() {
             throw std::runtime_error(warn + err);
         }
 
-        std::unordered_map<Vertex, uint32_t> uniqueVertices{};
-
         for (const auto& shape : shapes) {
             for (const auto& index : shape.mesh.indices) {
                 Vertex vertex{};
@@ -872,12 +864,7 @@ void VulkanHelper::run() {
 
                 vertex.color = { 1.0f, 1.0f, 1.0f };
 
-                if (uniqueVertices.count(vertex) == 0) {
-                    uniqueVertices[vertex] = static_cast<uint32_t>(m_vertices.size());
-                    m_vertices.push_back(vertex);
-                }
-
-                m_indices.push_back(uniqueVertices[vertex]);
+                m_vertices.push_back(vertex);
             }
         }
         //Copy vertices to vertex buffer
@@ -892,27 +879,11 @@ void VulkanHelper::run() {
         copyBuffer(stagingVertexBuffer, m_vertexBuffer, vertexBufferSize);
         vkDestroyBuffer(m_device, stagingVertexBuffer, nullptr);
         vkFreeMemory(m_device, stagingVertexBufferMemory, nullptr);
-
-        //Copy indices to index buffer
-        VkDeviceSize bufferSize = sizeof(uint32_t) * m_indices.size();
-        VkBuffer stagingBuffer;
-        VkDeviceMemory stagingBufferMemory;
-        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
-        vkMapMemory(m_device, stagingBufferMemory, 0, bufferSize, 0, &data);
-        memcpy(data, m_indices.data(), (size_t)bufferSize);
-        vkUnmapMemory(m_device, stagingBufferMemory);
-        copyBuffer(stagingBuffer, m_indexBuffer, bufferSize);
-        vkDestroyBuffer(m_device, stagingBuffer, nullptr);
-        vkFreeMemory(m_device, stagingBufferMemory, nullptr);
-
-        createCommandBuffers();//TODO: is it ok to put this here?
     }
 
-    void VulkanHelper::createVertexAndIndexBuffer() {
+    void VulkanHelper::createVertexBuffer() {
         VkDeviceSize bufferSize = m_maxVertices * sizeof(Vertex);
-        VkDeviceSize indexBufferSize = bufferSize * 5;
         createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_vertexBuffer, m_vertexBufferMemory);
-        createBuffer(indexBufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_indexBuffer, m_indexBufferMemory);
     }
 
     void VulkanHelper::createUniformBuffers() {
@@ -932,7 +903,7 @@ void VulkanHelper::run() {
         poolSizes[0].descriptorCount = static_cast<uint32_t>(m_swapChainImages.size());
         poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         poolSizes[1].descriptorCount = static_cast<uint32_t>(m_swapChainImages.size());
-
+        
         VkDescriptorPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
@@ -1115,12 +1086,10 @@ void VulkanHelper::run() {
             VkDeviceSize offsets[] = { 0 };
             vkCmdBindVertexBuffers(m_commandBuffers[i], 0, 1, vertexBuffers, offsets);
 
-            vkCmdBindIndexBuffer(m_commandBuffers[i], m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
+           
             vkCmdBindDescriptorSets(m_commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &m_descriptorSets[i], 0, nullptr);
 
-            vkCmdDrawIndexed(m_commandBuffers[i], static_cast<uint32_t>(m_indices.size()), 1, 0, 0, 0);
-
+            vkCmdDraw(m_commandBuffers[i],static_cast<uint32_t>(m_vertices.size()), 1, 0, 0);
             vkCmdEndRenderPass(m_commandBuffers[i]);
 
             if (vkEndCommandBuffer(m_commandBuffers[i]) != VK_SUCCESS) {
