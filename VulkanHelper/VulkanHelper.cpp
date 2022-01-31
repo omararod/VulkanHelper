@@ -60,14 +60,14 @@ void VulkanHelper::run() {
         createDepthResources();
         createFramebuffers();
         createVertexBuffer();
-        createTextureImage("textures/texture.jpg");
-        loadModel("models/viking_room.obj");
+        createTextureImage("textures/viking_room.png");
+        //loadModel("models/viking_room.obj");
+        createGeometry();
         createUniformBuffers();
         createDescriptorPool();
         createDescriptorSets();
         createCommandBuffers();
-        createSyncObjects();        
-        createCommandBuffers();
+        createSyncObjects();
     }
 
     void VulkanHelper::mainLoop() {
@@ -510,9 +510,8 @@ void VulkanHelper::run() {
         rasterizer.rasterizerDiscardEnable = VK_FALSE;
         rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
         rasterizer.lineWidth = 1.0f;
-        rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-        rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-        rasterizer.depthBiasEnable = VK_FALSE;
+        rasterizer.cullMode = VK_CULL_MODE_NONE;
+        rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
 
         VkPipelineMultisampleStateCreateInfo multisampling{};
         multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
@@ -845,23 +844,34 @@ void VulkanHelper::run() {
             for (const auto& index : shape.mesh.indices) {
                 Vertex vertex{};
 
-                vertex.pos = {
-                    attrib.vertices[3 * index.vertex_index + 0],
-                    attrib.vertices[3 * index.vertex_index + 1],
-                    attrib.vertices[3 * index.vertex_index + 2]
-                };
+                if (attrib.vertices.size() > 0)
+                {
+                    vertex.pos = {
+                       attrib.vertices[3 * index.vertex_index + 0],
+                       attrib.vertices[3 * index.vertex_index + 1],
+                       attrib.vertices[3 * index.vertex_index + 2]
+                    };
+                }
 
-                vertex.texCoord = {
-                    attrib.texcoords[2 * index.texcoord_index + 0],
-                    1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
-                };
+                if (attrib.texcoords.size() > 0)
+                {
+                    vertex.texCoord = {
+                        attrib.texcoords[2 * index.texcoord_index + 0],
+                        1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
+                    };
+                }
 
-                vertex.normals = {
-                    attrib.normals[3 * index.normal_index + 0],
-                    attrib.normals[3 * index.normal_index + 1],
-                    attrib.normals[3 * index.normal_index + 2]
-                };
-
+                if (attrib.normals.size() > 0)
+                {
+                    vertex.normals = {
+                        attrib.normals[3 * index.normal_index + 0],
+                        attrib.normals[3 * index.normal_index + 1],
+                        attrib.normals[3 * index.normal_index + 2]
+                    };
+                }
+                else {
+                    vertex.normals = {0.0, -1.0, 0.0};
+                }
                 vertex.color = { 1.0f, 1.0f, 1.0f };
 
                 m_vertices.push_back(vertex);
@@ -1020,11 +1030,12 @@ void VulkanHelper::run() {
         vkFreeCommandBuffers(m_device, m_commandPool, 1, &commandBuffer);
     }
 
-    void VulkanHelper::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
+    void VulkanHelper::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size, VkDeviceSize dstOffset) {
         VkCommandBuffer commandBuffer = beginSingleTimeCommands();
 
         VkBufferCopy copyRegion{};
         copyRegion.size = size;
+        copyRegion.dstOffset = dstOffset;
         vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
 
         endSingleTimeCommands(commandBuffer);
@@ -1088,8 +1099,12 @@ void VulkanHelper::run() {
 
            
             vkCmdBindDescriptorSets(m_commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &m_descriptorSets[i], 0, nullptr);
-
-            vkCmdDraw(m_commandBuffers[i],static_cast<uint32_t>(m_vertices.size()), 1, 0, 0);
+            uint32_t totalVertices = 0;
+            for (auto& mesh : m_meshes)
+            {
+                totalVertices += mesh.vertices.size();
+            }
+            vkCmdDraw(m_commandBuffers[i],totalVertices, 1, 0, 0);
             vkCmdEndRenderPass(m_commandBuffers[i]);
 
             if (vkEndCommandBuffer(m_commandBuffers[i]) != VK_SUCCESS) {
@@ -1124,14 +1139,14 @@ void VulkanHelper::run() {
         static auto startTime = std::chrono::high_resolution_clock::now();
 
         auto currentTime = std::chrono::high_resolution_clock::now();
-        float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+        float time =  std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
         UniformBufferObject ubo{};
-        ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-        ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        ubo.model =glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, -1.0f, 0.0f));
+        ubo.view = glm::lookAt(glm::vec3(0.0f, -1.0f, -3.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f));
         ubo.proj = glm::perspective(glm::radians(45.0f), m_swapChainExtent.width / (float)m_swapChainExtent.height, 0.1f, 10.0f);
         ubo.proj[1][1] *= -1;
-
+        
         void* data;
         vkMapMemory(m_device, m_uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
         memcpy(data, &ubo, sizeof(ubo));
@@ -1410,4 +1425,76 @@ void VulkanHelper::run() {
         std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
 
         return VK_FALSE;
+    }
+
+    void VulkanHelper::createGeometry()
+    {
+        Mesh m1,m2;
+        Vertex v1;
+        v1.pos.x = -1.0; v1.pos.y = -1.0; v1.pos.z = 0.0;
+        v1.color.r = 1.0; v1.color.g = 0.0; v1.color.b = 0.0;
+        v1.normals.x = 0.0; v1.normals.y = 0.0; v1.normals.z = 1.0;
+        v1.texCoord.x = -1.0; v1.texCoord.y = -1.0;
+        Vertex v2;
+        v2.pos.x = 1.0; v2.pos.y = -1.0; v2.pos.z = 0.0;
+        v2.color.r = 0.0; v2.color.g = 1.0; v2.color.b = 0.0;
+        v2.normals.x = 0.0; v2.normals.y = 0.0; v2.normals.z = 1.0;
+        v2.texCoord.x = 1.0; v2.texCoord.y = -1.0;
+        Vertex v3;
+        v3.pos.x = -1.0; v3.pos.y = 1.0; v3.pos.z = 0.0;
+        v3.color.r = 0.0; v3.color.g = 0.0; v3.color.b = 1.0;
+        v3.normals.x = 0.0; v3.normals.y = 0.0; v3.normals.z = 1.0;
+        v3.texCoord.x = -1.0; v3.texCoord.y = 1.0;
+
+        Vertex v4;
+        v4.pos.x = 1.0; v4.pos.y = -1.0; v4.pos.z = 0.5;
+        v4.color.r = 1.0; v4.color.g = 0.0; v4.color.b = 0.0;
+        v4.normals.x = 0.0; v4.normals.y = 0.0; v4.normals.z = 1.0;
+        v4.texCoord.x = 1.0; v4.texCoord.y = -1.0;
+        Vertex v5;
+        v5.pos.x = 1.0; v5.pos.y = 1.0; v5.pos.z = 0.5;
+        v5.color.r = 0.0; v5.color.g = 1.0; v5.color.b = 0.0;
+        v5.normals.x = 0.0; v5.normals.y = 0.0; v5.normals.z = 1.0;
+        v5.texCoord.x = 1.0; v5.texCoord.y = 1.0;
+        Vertex v6;
+        v6.pos.x = -1.0; v6.pos.y = 1.0; v6.pos.z = 0.5;
+        v6.color.r = 0.0; v6.color.g = 0.0; v6.color.b = 1.0;
+        v6.normals.x = 0.0; v6.normals.y = 0.0; v6.normals.z = 1.0;
+        v6.texCoord.x = -1.0; v6.texCoord.y = 1.0;
+        m1.vertices.push_back(v1);
+        m1.vertices.push_back(v2);
+        m1.vertices.push_back(v3);
+        m2.vertices.push_back(v4);
+        m2.vertices.push_back(v5);
+        m2.vertices.push_back(v6);
+
+        m_meshes.push_back(m1);
+        m_meshes.push_back(m2);
+        VkDeviceSize currentBufferOffset = 0;
+
+        for (auto& mesh : m_meshes)
+        {
+            VkDeviceSize vertexBufferSize = sizeof(Vertex) * mesh.vertices.size();
+            VkBuffer stagingVertexBuffer;
+            VkDeviceMemory stagingVertexBufferMemory;
+            createBuffer(vertexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingVertexBuffer, stagingVertexBufferMemory);
+            void* data;
+            vkMapMemory(m_device, stagingVertexBufferMemory, 0, vertexBufferSize, 0, &data);
+            memcpy(data, mesh.vertices.data(), (size_t)vertexBufferSize);
+            vkUnmapMemory(m_device, stagingVertexBufferMemory);
+            copyBuffer(stagingVertexBuffer, m_vertexBuffer, vertexBufferSize, currentBufferOffset);
+            vkDestroyBuffer(m_device, stagingVertexBuffer, nullptr);
+            vkFreeMemory(m_device, stagingVertexBufferMemory, nullptr);
+
+            currentBufferOffset += vertexBufferSize;
+        }
+
+        
+        
+        
+        
+        
+        
+        
+        
     }

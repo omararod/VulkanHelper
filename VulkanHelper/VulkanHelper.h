@@ -63,6 +63,7 @@ struct SwapChainSupportDetails {
     std::vector<VkPresentModeKHR> presentModes;
 };
 
+
 struct Vertex {
     glm::vec3 pos;
     glm::vec3 color;
@@ -111,6 +112,11 @@ struct Vertex {
     }
 };
 
+struct Mesh
+{
+    std::vector<Vertex> vertices;
+};
+
 namespace std {
     template<> struct hash<Vertex> {
         size_t operator()(Vertex const& vertex) const {
@@ -133,9 +139,9 @@ public:
 private:
     const uint32_t WIDTH = 800;
     const uint32_t HEIGHT = 600;
-    const int m_maxVertices = 10000*3;
+    const int m_maxVertices = 100000;
 
-     const std::string TEXTURE_PATH = "textures/texture.jpg";
+     
 
     const int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -175,6 +181,7 @@ private:
     VkSampler m_textureSampler;
 
     std::vector<Vertex> m_vertices;
+    std::vector<Mesh> m_meshes;
     
     VkBuffer m_vertexBuffer;
     VkDeviceMemory m_vertexBufferMemory;
@@ -266,7 +273,7 @@ private:
     VkCommandBuffer beginSingleTimeCommands();
 
     void endSingleTimeCommands(VkCommandBuffer commandBuffer);
-    void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+    void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size, VkDeviceSize dstOffset = 0);
     uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
     void createCommandBuffers();
@@ -297,4 +304,7 @@ private:
     static std::vector<char> readFile(const std::string& filename);
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData);
+
+//TODO: remove this function
+    void createGeometry();
 };

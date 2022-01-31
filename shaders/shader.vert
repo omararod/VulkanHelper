@@ -15,7 +15,11 @@ layout(location = 0) out vec3 fragColor;
 layout(location = 1) out vec2 fragTexCoord;
 
 void main() {
+    vec4 light = vec4(0,0,1,1);
+	vec4 transformedNormals =  ubo.proj * ubo.view * ubo.model *vec4(inNormals,1);
     gl_Position = ubo.proj * ubo.view * ubo.model * vec4(inPosition, 1.0);
-    fragColor = max(dot(inNormals,vec3(0,-1,1)),0)*inColor;//inColor;
+	//gl_Position = vec4(inPosition, 1.0);
+    //fragColor = max(dot(inNormals.xyz,light.xyz),0)*inColor;
+	fragColor = inColor;
     fragTexCoord = inTexCoord;
 }
