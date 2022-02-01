@@ -1,4 +1,0 @@
-cmake_minimum_required(VERSION 3.22)
-project(vulkanHelper)
-add_executable(hello main.cpp)
-target_include_directories(hello PRIVATE C:/VulkanSDK/1.2.198.1/Include)
