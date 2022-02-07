@@ -86,7 +86,6 @@ private:
     const uint32_t WIDTH = 800;
     const uint32_t HEIGHT = 600;
     const int m_maxVertices = 100000;
-
      
 
     const int MAX_FRAMES_IN_FLIGHT = 2;
@@ -196,6 +195,8 @@ private:
 
     bool hasStencilComponent(VkFormat format);
 
+    void createTextureSampler();
+
     void createTextureImage(std::string texturePath);
 
     VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
@@ -214,6 +215,7 @@ private:
     void createDescriptorPool();
 
     void createDescriptorSets();
+    void updateDescriptorSets();
     void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
 
     VkCommandBuffer beginSingleTimeCommands();

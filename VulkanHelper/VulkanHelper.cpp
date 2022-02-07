@@ -60,12 +60,14 @@ void VulkanHelper::run() {
         createDepthResources();
         createFramebuffers();
         createVertexBuffer();
-        createTextureImage("textures/viking_room.png");
-        //loadModel("models/viking_room.obj");
-        createGeometry();
+        createTextureSampler();
         createUniformBuffers();
         createDescriptorPool();
         createDescriptorSets();
+        
+        //loadModel("models/viking_room.obj");
+        createGeometry();
+        
         createCommandBuffers();
         createSyncObjects();
     }
@@ -645,6 +647,32 @@ void VulkanHelper::run() {
         return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
     }
 
+    void VulkanHelper::createTextureSampler()
+    {
+        //=======Create texture sampler
+        VkPhysicalDeviceProperties properties{};
+        vkGetPhysicalDeviceProperties(m_physicalDevice, &properties);
+
+        VkSamplerCreateInfo samplerInfo{};
+        samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+        samplerInfo.magFilter = VK_FILTER_LINEAR;
+        samplerInfo.minFilter = VK_FILTER_LINEAR;
+        samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        samplerInfo.anisotropyEnable = VK_TRUE;
+        samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+        samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+        samplerInfo.unnormalizedCoordinates = VK_FALSE;
+        samplerInfo.compareEnable = VK_FALSE;
+        samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+        samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+
+        if (vkCreateSampler(m_device, &samplerInfo, nullptr, &m_textureSampler) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create texture sampler!");
+        }
+    }
+
     void VulkanHelper::createTextureImage(std::string texturePath) {
         int texWidth, texHeight, texChannels;
         stbi_uc* pixels = stbi_load(texturePath.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
@@ -676,29 +704,6 @@ void VulkanHelper::run() {
 
         //=======Create texture image view
         m_textureImageView = createImageView(m_textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
-
-        //=======Create texture sampler
-        VkPhysicalDeviceProperties properties{};
-        vkGetPhysicalDeviceProperties(m_physicalDevice, &properties);
-
-        VkSamplerCreateInfo samplerInfo{};
-        samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-        samplerInfo.magFilter = VK_FILTER_LINEAR;
-        samplerInfo.minFilter = VK_FILTER_LINEAR;
-        samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        samplerInfo.anisotropyEnable = VK_TRUE;
-        samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
-        samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-        samplerInfo.unnormalizedCoordinates = VK_FALSE;
-        samplerInfo.compareEnable = VK_FALSE;
-        samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-        samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-
-        if (vkCreateSampler(m_device, &samplerInfo, nullptr, &m_textureSampler) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create texture sampler!");
-        }
     }
 
    
@@ -872,8 +877,6 @@ void VulkanHelper::run() {
                 else {
                     vertex.normals = {0.0, -1.0, 0.0};
                 }
-                vertex.color = { 1.0f, 1.0f, 1.0f };
-
                 m_vertices.push_back(vertex);
             }
         }
@@ -938,6 +941,10 @@ void VulkanHelper::run() {
             throw std::runtime_error("failed to allocate descriptor sets!");
         }
 
+    }
+
+    void VulkanHelper::updateDescriptorSets()
+    {
         for (size_t i = 0; i < m_swapChainImages.size(); i++) {
             VkDescriptorBufferInfo bufferInfo{};
             bufferInfo.buffer = m_uniformBuffers[i];
@@ -970,6 +977,7 @@ void VulkanHelper::run() {
             vkUpdateDescriptorSets(m_device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
         }
     }
+
 
     void VulkanHelper::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
         VkBufferCreateInfo bufferInfo{};
@@ -1487,14 +1495,8 @@ void VulkanHelper::run() {
             vkFreeMemory(m_device, stagingVertexBufferMemory, nullptr);
 
             currentBufferOffset += vertexBufferSize;
-        }
-
-        
-        
-        
-        
-        
-        
-        
+        }  
+        createTextureImage("textures/viking_room.png");
+        updateDescriptorSets();
         
     }
