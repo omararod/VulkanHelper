@@ -64,12 +64,15 @@ void VulkanHelper::run() {
         createUniformBuffers();
         createDescriptorPool();
         createDescriptorSets();
+        updateDescriptorSets();
         
-        //loadModel("models/viking_room.obj");
-        createGeometry();
         
         createCommandBuffers();
+        
+
         createSyncObjects();
+        //loadModel("models/viking_room.obj");
+        createGeometry();
     }
 
     void VulkanHelper::mainLoop() {
@@ -568,6 +571,8 @@ void VulkanHelper::run() {
         pipelineInfo.subpass = 0;
         pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
+     
+
         if (vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_graphicsPipeline) != VK_SUCCESS) {
             throw std::runtime_error("failed to create graphics pipeline!");
         }
@@ -956,23 +961,31 @@ void VulkanHelper::run() {
             imageInfo.imageView = m_textureImageView;
             imageInfo.sampler = m_textureSampler;
 
-            std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+            //std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+            std::vector<VkWriteDescriptorSet> descriptorWrites;
+            VkWriteDescriptorSet ubufferDescriptor{};
+            ubufferDescriptor.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            ubufferDescriptor.dstSet = m_descriptorSets[i];
+            ubufferDescriptor.dstBinding = 0;
+            ubufferDescriptor.dstArrayElement = 0;
+            ubufferDescriptor.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            ubufferDescriptor.descriptorCount = 1;
+            ubufferDescriptor.pBufferInfo = &bufferInfo;
 
-            descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrites[0].dstSet = m_descriptorSets[i];
-            descriptorWrites[0].dstBinding = 0;
-            descriptorWrites[0].dstArrayElement = 0;
-            descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            descriptorWrites[0].descriptorCount = 1;
-            descriptorWrites[0].pBufferInfo = &bufferInfo;
-
-            descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrites[1].dstSet = m_descriptorSets[i];
-            descriptorWrites[1].dstBinding = 1;
-            descriptorWrites[1].dstArrayElement = 0;
-            descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            descriptorWrites[1].descriptorCount = 1;
-            descriptorWrites[1].pImageInfo = &imageInfo;
+            VkWriteDescriptorSet textureDescriptor{};
+            textureDescriptor.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            textureDescriptor.dstSet = m_descriptorSets[i];
+            textureDescriptor.dstBinding = 1;
+            textureDescriptor.dstArrayElement = 0;
+            textureDescriptor.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            textureDescriptor.descriptorCount = 1;
+            textureDescriptor.pImageInfo = &imageInfo;
+            
+            descriptorWrites.push_back(ubufferDescriptor);
+            if (!m_meshes.empty())
+            {
+                descriptorWrites.push_back(textureDescriptor);
+            }
 
             vkUpdateDescriptorSets(m_device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
         }
@@ -1062,20 +1075,27 @@ void VulkanHelper::run() {
         throw std::runtime_error("failed to find suitable memory type!");
     }
 
-    void VulkanHelper::createCommandBuffers() {
+    void VulkanHelper::createCommandBuffers() 
+    {
+        
+
         m_commandBuffers.resize(m_swapChainFramebuffers.size());
 
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         allocInfo.commandPool = m_commandPool;
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandBufferCount = (uint32_t)m_commandBuffers.size();
+        allocInfo.commandBufferCount = static_cast<uint32_t>(m_commandBuffers.size());
 
         if (vkAllocateCommandBuffers(m_device, &allocInfo, m_commandBuffers.data()) != VK_SUCCESS) {
             throw std::runtime_error("failed to allocate command buffers!");
         }
+    }
 
-        for (size_t i = 0; i < m_commandBuffers.size(); i++) {
+    void VulkanHelper::recordCommands()
+    {
+        for (size_t i = 0; i < m_commandBuffers.size(); i++)
+        {
             VkCommandBufferBeginInfo beginInfo{};
             beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
@@ -1105,14 +1125,10 @@ void VulkanHelper::run() {
             VkDeviceSize offsets[] = { 0 };
             vkCmdBindVertexBuffers(m_commandBuffers[i], 0, 1, vertexBuffers, offsets);
 
-           
+
             vkCmdBindDescriptorSets(m_commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &m_descriptorSets[i], 0, nullptr);
-            uint32_t totalVertices = 0;
-            for (auto& mesh : m_meshes)
-            {
-                totalVertices += mesh.vertices.size();
-            }
-            vkCmdDraw(m_commandBuffers[i],totalVertices, 1, 0, 0);
+            vkCmdDraw(m_commandBuffers[i], m_totalVertices, 1, 0, 0);
+            
             vkCmdEndRenderPass(m_commandBuffers[i]);
 
             if (vkEndCommandBuffer(m_commandBuffers[i]) != VK_SUCCESS) {
@@ -1120,7 +1136,6 @@ void VulkanHelper::run() {
             }
         }
     }
-
     void VulkanHelper::createSyncObjects() {
         m_imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
         m_renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
@@ -1479,7 +1494,7 @@ void VulkanHelper::run() {
         m_meshes.push_back(m1);
         m_meshes.push_back(m2);
         VkDeviceSize currentBufferOffset = 0;
-
+        int totalVertices = 0;
         for (auto& mesh : m_meshes)
         {
             VkDeviceSize vertexBufferSize = sizeof(Vertex) * mesh.vertices.size();
@@ -1495,8 +1510,11 @@ void VulkanHelper::run() {
             vkFreeMemory(m_device, stagingVertexBufferMemory, nullptr);
 
             currentBufferOffset += vertexBufferSize;
+            totalVertices += mesh.vertices.size();
         }  
+        m_totalVertices = totalVertices;
         createTextureImage("textures/viking_room.png");
         updateDescriptorSets();
+        recordCommands();
         
     }

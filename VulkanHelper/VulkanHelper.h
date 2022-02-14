@@ -86,6 +86,7 @@ private:
     const uint32_t WIDTH = 800;
     const uint32_t HEIGHT = 600;
     const int m_maxVertices = 100000;
+    int m_totalVertices = 0;
      
 
     const int MAX_FRAMES_IN_FLIGHT = 2;
@@ -225,6 +226,7 @@ private:
     uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
     void createCommandBuffers();
+    void recordCommands();
 
     void createSyncObjects();
     void updateUniformBuffer(uint32_t currentImage);
