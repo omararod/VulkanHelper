@@ -1,20 +1,22 @@
 cmake_minimum_required(VERSION 3.22)
-set(CMAKE_CXX_STANDARD 17)
-
-set(APPLICATION_NAME hello)
-
-set(VULKAN_SDK_PATH C:/VulkanSDK/1.2.198.1)
-set(VULKAN_INCLUDE_PATH ${VULKAN_SDK_PATH}/Include)
-set(VULKAN_LIB_PATH ${VULKAN_SDK_PATH}/Lib)
-set(VULKAN_SDK_BIN_PATH ${VULKAN_SDK_PATH}/Bin)
-set(APPLICATION_NAME hello)
-
-set(GLFW_INCLUDE_PATH C:/glfw-3.3.6.bin.WIN64/glfw-3.3.6.bin.WIN64/include)
-set(GLFW_LIB_PATH C:/glfw-3.3.6.bin.WIN64/glfw-3.3.6.bin.WIN64/lib-vc2022)
-
-set(GLM_INCLUDE_PATH C:/glm-0.9.9.8/glm)
 
 project(vulkanHelper)
+
+set(CMAKE_CXX_STANDARD 17)
+set(APPLICATION_NAME hello)
+include(FetchContent)
+find_package(Vulkan REQUIRED)
+
+FetchContent_Declare(glfw
+GIT_REPOSITORY "https://github.com/glfw/glfw"
+GIT_TAG "3eaf1255b29fdf5c2895856c7be7d7185ef2b241")
+
+FetchContent_Declare(glm
+GIT_REPOSITORY "https://github.com/g-truc/glm"
+GIT_TAG "5c46b9c07008ae65cb81ab79cd677ecc1934b903")
+
+FetchContent_MakeAvailable(glfw)
+FetchContent_MakeAvailable(glm)
 
 add_subdirectory(VulkanHelper)
 
@@ -26,14 +28,14 @@ set_target_properties(
 
 
 
-target_include_directories(${APPLICATION_NAME} PRIVATE VulkanHelper ${VULKAN_INCLUDE_PATH} ${GLFW_INCLUDE_PATH} ${GLM_INCLUDE_PATH})
-target_link_directories(${APPLICATION_NAME} PRIVATE ${VULKAN_LIB_PATH} ${GLFW_LIB_PATH})
+target_include_directories(${APPLICATION_NAME} PRIVATE VulkanHelper)
 target_link_libraries(${APPLICATION_NAME} vulkanhelper)
-
+    
 
 add_custom_command(TARGET ${APPLICATION_NAME} POST_BUILD
-    COMMAND "${VULKAN_SDK_BIN_PATH}/glslc" "${CMAKE_SOURCE_DIR}/shaders/shader.vert" "-o" "${PROJECT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/shaders/vert.spv"
-    COMMAND "${VULKAN_SDK_BIN_PATH}/glslc" "${CMAKE_SOURCE_DIR}/shaders/shader.frag" "-o" "${PROJECT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/shaders/frag.spv"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${PROJECT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/shaders"
+    COMMAND "${Vulkan_GLSLC_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/shaders/shader.vert" "-o" "${PROJECT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/shaders/vert.spv"
+    COMMAND "${Vulkan_GLSLC_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/shaders/shader.frag" "-o" "${PROJECT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/shaders/frag.spv"
     COMMAND ${CMAKE_COMMAND} -E make_directory "${PROJECT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/shaders/"
     COMMAND ${CMAKE_COMMAND} -E make_directory "${PROJECT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/models/"
     COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/models/viking_room.obj" "${PROJECT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/models/"
